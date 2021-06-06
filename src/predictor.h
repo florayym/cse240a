@@ -67,4 +67,17 @@ uint8_t make_prediction(uint32_t pc);
 //
 void train_predictor(uint32_t pc, uint8_t outcome);
 
+//--------------------------------------------//
+//    Self-implemented Predictor Prototypes   //
+//--------------------------------------------//
+
+uint8_t gshare(uint32_t pc);
+
+uint8_t tournament(uint32_t pc);
+
+uint8_t custom(uint32_t pc);
+
+// free memory allocations
+void wrap_up_predictor();
+
 #endif

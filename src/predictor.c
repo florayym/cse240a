@@ -37,6 +37,15 @@ int verbose;
 //TODO: Add your own Branch Predictor data structures here
 //
 
+// Gshare: global history based on index sharing
+
+uint32_t ghistory; // Global branch history
+
+uint8_t tag; // Index for Direction Predictor (DIRP)
+
+uint8_t *counters; // key=tag, val=DIRP (T or NT)
+
+uint8_t dirpBits; // Number of bits used for DIRP，default 2-bit
 
 //------------------------------------//
 //        Predictor Functions         //
@@ -50,6 +59,9 @@ init_predictor()
   //
   //TODO: Initialize Branch Predictor Data Structures
   //
+
+  counters = (uint8_t *)calloc(1 << ghistoryBits, sizeof(uint8_t));
+  dirpBits = 2;
 }
 
 // Make a prediction for conditional branch instruction at PC 'pc'
@@ -68,8 +80,11 @@ make_prediction(uint32_t pc)
     case STATIC:
       return TAKEN;
     case GSHARE:
+      return gshare(pc);
     case TOURNAMENT:
+      return tournament(pc);
     case CUSTOM:
+      return custom(pc);
     default:
       break;
   }
@@ -88,4 +103,24 @@ train_predictor(uint32_t pc, uint8_t outcome)
   //
   //TODO: Implement Predictor training
   //
+
+  counters[tag] += outcome ? (counters[tag] == (1 << dirpBits) - 1 ? 0 : 1) : (counters[tag] == 0 ? 0 : -1);
+  ghistory = (ghistory << 1 | outcome) & ((1 << ghistoryBits) - 1);
+}
+
+uint8_t gshare(uint32_t pc) {
+  tag = (pc ^ ghistory) & ((1 << ghistoryBits) - 1);
+  return counters[tag] >> (dirpBits - 1) ? TAKEN : NOTTAKEN;
+}
+
+uint8_t tournament(uint32_t pc) {
+  return NOTTAKEN;
+}
+
+uint8_t custom(uint32_t pc) {
+  return NOTTAKEN;
+}
+
+void wrap_up_predictor() {
+  free(counters);
 }
