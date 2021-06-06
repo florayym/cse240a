@@ -127,9 +127,6 @@ main(int argc, char *argv[])
     train_predictor(pc, outcome);
   }
 
-  // ADD function to wrap up memory allocation in predictors
-  wrap_up_predictor();
-
   // Print out the mispredict statistics
   printf("Branches:        %10d\n", num_branches);
   printf("Incorrect:       %10d\n", mispredictions);
@@ -137,6 +134,7 @@ main(int argc, char *argv[])
   printf("Misprediction Rate: %7.3f\n", mispredict_rate);
 
   // Cleanup
+  wrap_up_predictor(); // ADDED
   fclose(stream);
   free(buf);
 

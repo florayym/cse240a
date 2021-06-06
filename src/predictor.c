@@ -38,14 +38,11 @@ int verbose;
 //
 
 // Gshare: global history based on index sharing
+uint32_t ghr;      // GHR: Global history register
+uint8_t tag;       // Index for Direction Predictor (DIRP)
+uint8_t *bht;      // BHT: index=tag, val=counter (SN, WN, WT, ST)
+uint8_t dirpBits;  // Number of bits used for DIRP，default 2-bit
 
-uint32_t ghistory; // Global branch history
-
-uint8_t tag; // Index for Direction Predictor (DIRP)
-
-uint8_t *counters; // key=tag, val=DIRP (T or NT)
-
-uint8_t dirpBits; // Number of bits used for DIRP，default 2-bit
 
 //------------------------------------//
 //        Predictor Functions         //
@@ -60,7 +57,8 @@ init_predictor()
   //TODO: Initialize Branch Predictor Data Structures
   //
 
-  counters = (uint8_t *)calloc(1 << ghistoryBits, sizeof(uint8_t));
+  ghr = 0; // initialize as NT
+  bht = (uint8_t *)calloc(1 << ghistoryBits, sizeof(uint8_t));
   dirpBits = 2;
 }
 
@@ -104,13 +102,13 @@ train_predictor(uint32_t pc, uint8_t outcome)
   //TODO: Implement Predictor training
   //
 
-  counters[tag] += outcome ? (counters[tag] == (1 << dirpBits) - 1 ? 0 : 1) : (counters[tag] == 0 ? 0 : -1);
-  ghistory = (ghistory << 1 | outcome) & ((1 << ghistoryBits) - 1);
+  bht[tag] += outcome ? (bht[tag] == (1 << dirpBits) - 1 ? 0 : 1) : (bht[tag] == 0 ? 0 : -1);
+  ghr = (ghr << 1 | outcome) & ((1 << ghistoryBits) - 1);
 }
 
 uint8_t gshare(uint32_t pc) {
-  tag = (pc ^ ghistory) & ((1 << ghistoryBits) - 1);
-  return counters[tag] >> (dirpBits - 1) ? TAKEN : NOTTAKEN;
+  tag = (pc ^ ghr) & ((1 << ghistoryBits) - 1);
+  return bht[tag] >> (dirpBits - 1) ? TAKEN : NOTTAKEN;
 }
 
 uint8_t tournament(uint32_t pc) {
@@ -122,5 +120,5 @@ uint8_t custom(uint32_t pc) {
 }
 
 void wrap_up_predictor() {
-  free(counters);
+  free(bht);
 }
