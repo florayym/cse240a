@@ -75,6 +75,12 @@ docker run --rm -it -v //c/path/to/project/directory:/path
 /to/mount/point prodromou87/ucsd_cse240a
 ```
 
+*In my case*, the command would be:
+
+```sh
+docker run --rm -it -v ~/cse240a:/home/flora/cse240a prodromou87/ucsd_cse240a
+```
+
 If necessary, you can mount more directories with multiple `-v` flags. Once you get a shell, you can confirm the folder has been mounted with `ls /path/to/mount/point`. You can now compile and run your project following the instructions provided in this document. You can also modify the code on your host machine using your preferred editor and only switch to docker for compiling/running. You don't need to restart docker every time since changes in the mounted directory will immediately be visible in Docker.
 
 ## Traces
@@ -201,23 +207,3 @@ You should do most of your development on your own machine. If you face any issu
 We will be comparing your custom predictor against a Gshare predictor with 13 bits of global history (--global:13), which is the largest possible Gshare that fits the 16kb budget. We will also be comparing it against a Tournament predictor of about 14kb. This predictor uses 9 bits of global history, 10 bits of local history and 10 PC bits (--tournamet:9:10:10). These are the two predictors you have to outperform.
 
 For each predictor (gshare:13, tournament:9:10:10 and your custom predictor), we will calculate the average missprediction rate accross all 12 of our traces. Out of those 12, six are visible to you and provided along with the starter code to use during development. The remaining six will remain hidden. Your predictor's average missprediction rate must be better (lower) than the other two to get all the points (minus the bonus points for top ranked predictors).
-
-## Turn-in instructions
-
-**DUE: Nov 12 2019 - Submissions after 11:59:59 PM are considered late**
-
- A project is considered late at 12:00:01 AM (Which is 1 second past Midnight).
-
-To submit your project, compress the 'src' folder in a **.zip** (not .rar) file and upload it in gradescope. Select only the source files required for compilation and nothing else (binaries, traces etc should not be submitted). This will trigger our autograder to begin grading. You are allowed to submit multiple times.
-
-Gradescope has a time limit for autograders. Make sure that your code does not do anything unnecessary. For comparison purposes, we will announce our implementation's running time as soon as we optimize it.
-
-Our autograder runs two sets of tests:
-
-We first ensure that your code is compatible with our autograder. If your code fails any of these tests, you will be notified immediately, so don't leave the screen before you see the grading outcome. Specifically, this set of tests checks that:
-  - `make` produces an executable named `predictor`
-  - The output produced by your executable has the expected format
-
-Once you pass the compatibility test, we grade the output produced by your code. You will be able to see your score on some of our test cases, but some will be hidden. Your overall grade will not be visible until after the project's due date.
-
-**Note:** Gradescope expects pass/fail tests but we will be reporting percentages. If you don't score 100%, Gradescope considers it a failed tests. Do not be concerned when you see failed tests (but be concerned if your score is low and re-submit)
