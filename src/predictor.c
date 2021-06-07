@@ -38,11 +38,16 @@ int verbose;
 //
 
 // Gshare: global history based on index sharing
-uint32_t ghr;      // GHR: Global history register
-uint8_t tag;       // Index for Direction Predictor (DIRP)
-uint8_t *bht;      // BHT: index=tag, val=counter (SN, WN, WT, ST)
-uint8_t dirpBits;  // Number of bits used for DIRP，default 2-bit
+uint8_t tag;          // Index for Direction Predictor (DIRP)
 
+uint32_t ghr;         // GHR: Global history register
+uint8_t *bht;         // BHT: index=tag, val=counter (SN, WN, WT, ST)
+uint8_t counterBits;  // Number of bits used for counters, default 2-bit
+
+// Tournament
+uint8_t *choicePredictors; // choose which predictor (l/g) to use
+uint8_t *lPredictors;
+uint32_t *lhistoryTable;
 
 //------------------------------------//
 //        Predictor Functions         //
@@ -57,9 +62,27 @@ init_predictor()
   //TODO: Initialize Branch Predictor Data Structures
   //
 
-  ghr = 0; // initialize as NT
+  ghr = 0; // Initialize as NT
+  counterBits = 2; // Default
   bht = (uint8_t *)calloc(1 << ghistoryBits, sizeof(uint8_t));
-  dirpBits = 2;
+  // FIXME The Choice Predictor used to select which predictor to use in the Alpha 21264 Tournament predictor should be initialized to Weakly select the Global Predictor.
+  switch (bpType) {
+    case GSHARE: {
+      tag = 0;
+      break;
+    }
+    case TOURNAMENT: {
+      choicePredictors = (uint8_t *)calloc(1 << ghistoryBits, sizeof(uint8_t)); // TODO should initialized all elements to 2?
+      lPredictors = (uint8_t *)calloc(1 << lhistoryBits, sizeof(uint8_t));
+      lhistoryTable = (uint32_t *)calloc(1 << pcIndexBits, sizeof(uint32_t));
+      break;
+    }
+    case CUSTOM: {
+      break;
+    }
+    default:
+      break;
+  }
 }
 
 // Make a prediction for conditional branch instruction at PC 'pc'
@@ -102,23 +125,76 @@ train_predictor(uint32_t pc, uint8_t outcome)
   //TODO: Implement Predictor training
   //
 
-  bht[tag] += outcome ? (bht[tag] == (1 << dirpBits) - 1 ? 0 : 1) : (bht[tag] == 0 ? 0 : -1);
+  uint32_t idx_g = ghr;
+  uint8_t MAX = (1 << counterBits) - 1;
   ghr = (ghr << 1 | outcome) & ((1 << ghistoryBits) - 1);
+
+  switch (bpType) {
+  case GSHARE: {
+    if (outcome) {
+      bht[tag] += bht[tag] == MAX ? 0 : 1;
+    } else {
+      bht[tag] -= bht[tag] == 0 ? 0 : 1;
+    }
+    break;
+  }
+  case TOURNAMENT: {
+    uint32_t idx_lhr = pc & ((1 << pcIndexBits) - 1);
+    uint32_t idx_l = lhistoryTable[idx_lhr];
+
+    uint8_t gCorrect = bht[idx_g] >> (counterBits - 1) == outcome;
+    uint8_t lCorrect = lPredictors[idx_l] >> (counterBits - 1) == outcome;
+
+    uint8_t action = gCorrect - lCorrect;
+    if (action > 0) {
+      choicePredictors[idx_g] += choicePredictors[idx_g] == MAX ? 0 : 1;
+    } else if (action < 0) {
+      choicePredictors[idx_g] -= choicePredictors[idx_g] == 0 ? 0 : 1;
+    }
+
+    if (outcome) {
+      bht[idx_g] += bht[idx_g] == MAX ? 0 : 1;
+      lPredictors[idx_l] += lPredictors[idx_l] == MAX ? 0 : 1;
+    } else {
+      bht[idx_g] -= bht[idx_g] == 0 ? 0 : 1;
+      lPredictors[idx_l] -= lPredictors[idx_l] == 0 ? 0 : 1;
+    }
+
+    lhistoryTable[idx_lhr] = (lhistoryTable[idx_lhr] << 1 | outcome) & ((1 << pcIndexBits) - 1);
+    break;
+  }
+  default:
+    break;
+  }
 }
 
-uint8_t gshare(uint32_t pc) {
+uint8_t
+gshare(uint32_t pc) {
   tag = (pc ^ ghr) & ((1 << ghistoryBits) - 1);
-  return bht[tag] >> (dirpBits - 1) ? TAKEN : NOTTAKEN;
+  return bht[tag] >> (counterBits - 1) ? TAKEN : NOTTAKEN;
 }
 
-uint8_t tournament(uint32_t pc) {
+uint8_t
+tournament(uint32_t pc) {
+  uint8_t predict = NOTTAKEN;
+  uint8_t selector = choicePredictors[ghr] >> (counterBits - 1);
+  if (selector) {
+    predict = bht[ghr];
+  } else {
+    predict = lPredictors[lhistoryTable[pc & ((1 << pcIndexBits) - 1)]];
+  }
+  return predict >> (counterBits - 1) ? TAKEN : NOTTAKEN;
+}
+
+uint8_t
+custom(uint32_t pc) {
   return NOTTAKEN;
 }
 
-uint8_t custom(uint32_t pc) {
-  return NOTTAKEN;
-}
-
-void wrap_up_predictor() {
+void
+wrap_up_predictor() {
   free(bht);
+  free(choicePredictors);
+  free(lPredictors);
+  free(lhistoryTable);
 }
