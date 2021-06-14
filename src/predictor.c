@@ -33,16 +33,12 @@ int verbose;
 //      Predictor Data Structures     //
 //------------------------------------//
 
-//
-//TODO: Add your own Branch Predictor data structures here
-//
-
 // Gshare: global history based on index sharing
-uint8_t tag;          // Index for Direction Predictor (DIRP)
+uint8_t tag;               // Index for Direction Predictor (DIRP)
 
-uint32_t ghr;         // GHR: Global history register
-uint8_t *bht;         // BHT: index=tag, val=counter (SN, WN, WT, ST)
-uint8_t counterBits;  // Number of bits used for counters, default 2-bit
+uint32_t ghr;              // GHR: Global history register
+uint8_t *bht;              // BHT: index=tag, val=counter (SN, WN, WT, ST)
+uint8_t counterBits;       // Number of bits used for counters, default 2-bit
 
 // Tournament
 uint8_t *choicePredictors; // choose which predictor (l/g) to use
@@ -58,21 +54,18 @@ uint32_t *lhistoryTable;
 void
 init_predictor()
 {
-  //
-  //TODO: Initialize Branch Predictor Data Structures
-  //
-
+  int gentries = 1 << ghistoryBits;
   ghr = 0; // Initialize as NT
   counterBits = 2; // Default
-  bht = (uint8_t *)calloc(1 << ghistoryBits, sizeof(uint8_t));
-  // FIXME The Choice Predictor used to select which predictor to use in the Alpha 21264 Tournament predictor should be initialized to Weakly select the Global Predictor.
+  bht = (uint8_t *)calloc(gentries, sizeof(uint8_t));
   switch (bpType) {
     case GSHARE: {
       tag = 0;
       break;
     }
     case TOURNAMENT: {
-      choicePredictors = (uint8_t *)calloc(1 << ghistoryBits, sizeof(uint8_t)); // TODO should initialized all elements to 2?
+      choicePredictors = (uint8_t *)malloc(sizeof(uint8_t) * gentries);
+      memset(choicePredictors, 2, gentries); // Initialize as weekly select global predictor
       lPredictors = (uint8_t *)calloc(1 << lhistoryBits, sizeof(uint8_t));
       lhistoryTable = (uint32_t *)calloc(1 << pcIndexBits, sizeof(uint32_t));
       break;
@@ -121,10 +114,6 @@ make_prediction(uint32_t pc)
 void
 train_predictor(uint32_t pc, uint8_t outcome)
 {
-  //
-  //TODO: Implement Predictor training
-  //
-
   uint32_t idx_g = ghr;
   uint8_t MAX = (1 << counterBits) - 1;
   ghr = (ghr << 1 | outcome) & ((1 << ghistoryBits) - 1);

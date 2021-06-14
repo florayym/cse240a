@@ -127,7 +127,7 @@ being run are as follows:
 ```
 An example of running a gshare predictor with 10 bits of history would be:   
 
-`bunzip2 -kc ../traces/int1_bz2 | ./predictor --gshare:10`
+`bunzip2 -kc ../traces/int_1.bz2 | ./predictor --gshare:10`
 
 
 ## Implementing the predictors
