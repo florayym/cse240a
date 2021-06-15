@@ -34,7 +34,7 @@ int verbose;
 //------------------------------------//
 
 // Gshare: global history based on index sharing
-uint8_t tag;               // Index for Direction Predictor (DIRP)
+uint32_t tag;               // Index for Direction Predictor (DIRP)
 
 uint32_t ghr;              // GHR: Global history register
 uint8_t *bht;              // BHT: index=tag, val=counter (SN, WN, WT, ST)
@@ -55,9 +55,10 @@ void
 init_predictor()
 {
   int gentries = 1 << ghistoryBits;
-  ghr = 0; // Initialize as NT
+  ghr = 0; // Initialize to NT
   counterBits = 2; // Default
-  bht = (uint8_t *)calloc(gentries, sizeof(uint8_t));
+  bht = (uint8_t *)malloc(sizeof(uint8_t) * gentries);
+  memset(bht, 1, gentries); // Weakly not taken (WN)
   switch (bpType) {
     case GSHARE: {
       tag = 0;
@@ -65,8 +66,11 @@ init_predictor()
     }
     case TOURNAMENT: {
       choicePredictors = (uint8_t *)malloc(sizeof(uint8_t) * gentries);
-      memset(choicePredictors, 2, gentries); // Initialize as weekly select global predictor
-      lPredictors = (uint8_t *)calloc(1 << lhistoryBits, sizeof(uint8_t));
+      memset(choicePredictors, 2, gentries); // Initialize to weekly select global predictor
+      
+      lPredictors = (uint8_t *)malloc(sizeof(uint8_t) * (1 << lhistoryBits));
+      memset(lPredictors, 1, 1 << lhistoryBits); // Weakly not taken (WN)
+      
       lhistoryTable = (uint32_t *)calloc(1 << pcIndexBits, sizeof(uint32_t));
       break;
     }
@@ -134,7 +138,7 @@ train_predictor(uint32_t pc, uint8_t outcome)
     uint8_t gCorrect = bht[idx_g] >> (counterBits - 1) == outcome;
     uint8_t lCorrect = lPredictors[idx_l] >> (counterBits - 1) == outcome;
 
-    uint8_t action = gCorrect - lCorrect;
+    int action = gCorrect - lCorrect;
     if (action > 0) {
       choicePredictors[idx_g] += choicePredictors[idx_g] == MAX ? 0 : 1;
     } else if (action < 0) {
@@ -149,7 +153,7 @@ train_predictor(uint32_t pc, uint8_t outcome)
       lPredictors[idx_l] -= lPredictors[idx_l] == 0 ? 0 : 1;
     }
 
-    lhistoryTable[idx_lhr] = (lhistoryTable[idx_lhr] << 1 | outcome) & ((1 << pcIndexBits) - 1);
+    lhistoryTable[idx_lhr] = (lhistoryTable[idx_lhr] << 1 | outcome) & ((1 << lhistoryBits) - 1);
     break;
   }
   default:
