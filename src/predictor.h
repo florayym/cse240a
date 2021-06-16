@@ -39,6 +39,8 @@ extern const char *bpName[];
 #define WT  2			// predict T, weak taken
 #define ST  3			// predict T, strong taken
 
+#define COUNTER 2       // Number of bits used for each counter
+
 //------------------------------------//
 //      Predictor Configuration       //
 //------------------------------------//
@@ -47,6 +49,11 @@ extern int lhistoryBits; // Number of bits used for Local History
 extern int pcIndexBits;  // Number of bits used for PC index
 extern int bpType;       // Branch Prediction Type
 extern int verbose;
+
+//------------------------------------//
+//        Analysis Parameters         //
+//------------------------------------//
+extern uint32_t gpred_cnt;
 
 //------------------------------------//
 //    Predictor Function Prototypes   //
@@ -67,16 +74,6 @@ uint8_t make_prediction(uint32_t pc);
 // indicates that the branch was not taken)
 //
 void train_predictor(uint32_t pc, uint8_t outcome);
-
-//--------------------------------------------//
-//    Self-implemented Predictor Prototypes   //
-//--------------------------------------------//
-
-uint8_t gshare(uint32_t pc);
-
-uint8_t tournament(uint32_t pc);
-
-uint8_t custom(uint32_t pc);
 
 // free memory allocations
 void wrap_up_predictor();
